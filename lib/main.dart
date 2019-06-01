@@ -1,80 +1,100 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:english_words/english_words.dart';
 
 void main() => runApp(MyApp());
 
+final dummySnapshot = [
+ {"name": "Filip", "votes": 15},
+ {"name": "Abraham", "votes": 14},
+ {"name": "Richard", "votes": 11},
+ {"name": "Ike", "votes": 10},
+ {"name": "Justin", "votes": 1},
+];
+
 class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // final wordPair = WordPair.random();
-    return MaterialApp(
-      title: 'Prakti',
-      home: RandomWords()
-    );
-  }
+ @override
+ Widget build(BuildContext context) {
+   return MaterialApp(
+     title: 'Topics',
+     home: MyHomePage(),
+    theme: ThemeData(          // Add the 3 lines from here... 
+      primaryColor: Colors.white,
+    ),                         // ... to here.
+
+   );
+ }
 }
 
+class MyHomePage extends StatefulWidget {
+ @override
+ _MyHomePageState createState() {
+   return _MyHomePageState();
+ }
+}
 
-class RandomWordsState extends State<RandomWords> {
-  final _suggestions = <WordPair>[];
-  final _biggerFont = const TextStyle(fontSize: 18.0);
+class _MyHomePageState extends State<MyHomePage> {
+ @override
+ Widget build(BuildContext context) {
+   return Scaffold(
+     appBar: AppBar(title: Text('My Topics')),
+     body: _buildBody(context),
+   );
+ }
 
+Widget _buildBody(BuildContext context) {
+ return StreamBuilder<QuerySnapshot>(
+   stream: Firestore.instance.collection('topics').snapshots(),
+   builder: (context, snapshot) {
+     if (!snapshot.hasData) return LinearProgressIndicator();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Startup Name Generator'),
+     return _buildList(context, snapshot.data.documents);
+   },
+ );
+}
+
+ Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot) {
+   return ListView(
+     padding: const EdgeInsets.only(top: 20.0),
+     children: snapshot.map((data) => _buildListItem(context, data)).toList(),
+   );
+ }
+
+  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
+    final record = Record.fromSnapshot(data);
+
+    return Padding(
+      key: ValueKey(record.name),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(5.0),
+        ),
+        child: ListTile(
+          title: Text(record.name),
+          trailing: Text("❤️")
+          // onTap: () => record.reference.setData({'users': "tom"})
+
+        ),
       ),
-      body: _buildSuggestions(),
-    );
-  }
-
-  Widget _buildRow(WordPair pair) {
-    return ListTile(
-      title: Text(
-        pair.asPascalCase,
-        style: _biggerFont,
-      ),
-    );
-  }
-
-  Widget _buildSuggestions() {
-    return ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemBuilder: /*1*/ (context, i) {
-          if (i.isOdd) return Divider(); /*2*/
-
-          final index = i ~/ 2; /*3*/
-          if (index >= _suggestions.length) {
-            _suggestions.addAll(generateWordPairs().take(10)); /*4*/
-          }
-          return _buildRow(_suggestions[index]);
-        });
-  }
-
+   );
+ }
 }
 
-class RandomWords extends StatefulWidget {
+class Record {
+ final String name;
+//  final String users;
+ final DocumentReference reference;
 
-  @override
-  RandomWordsState createState() => RandomWordsState();
+ Record.fromMap(Map<String, dynamic> map, {this.reference})
+     : assert(map['name'] != null),
+      //  assert(map['users'] != null),
+       name = map['name'];
+      //  users = map['users'];
 
+ Record.fromSnapshot(DocumentSnapshot snapshot)
+     : this.fromMap(snapshot.data, reference: snapshot.reference);
 
+ @override
+ String toString() => "Record<$name>";
 }
-
-
-
-
-
-// Widget _buildBody(BuildContext context) {
-//   return StreamBuilder<QuerySnapshot>(
-//     stream: Firestore.instance.collection('topics').snapshots(),
-//     builder: (context, snapshot) {
-//       if (!snapshot.hasData) return LinearProgressIndicator();
-
-//       // return _buildList(context, snapshot.data.documents);
-//     },
-//   );
-// }
